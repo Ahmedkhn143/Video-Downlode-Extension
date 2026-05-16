@@ -8,7 +8,7 @@
 //              OR brew install yt-dlp
 // ─────────────────────────────────────────────
 
-const { spawn }  = require('child_process');
+const { spawn, spawnSync }  = require('child_process');
 const fs         = require('fs');
 const path       = require('path');
 const os         = require('os');
@@ -99,7 +99,7 @@ function withFfmpeg(args) {
 const DOWNLOAD_DIR = path.join(os.homedir(), 'Downloads', 'PlaylistGet');
 
 const CONCURRENT_FRAGMENTS = Number.parseInt(
-  process.env.YTDLP_CONCURRENT_FRAGMENTS || '8',
+  process.env.YTDLP_CONCURRENT_FRAGMENTS || '16',
   10
 );
 const CONCURRENT_ARGS = Number.isFinite(CONCURRENT_FRAGMENTS) && CONCURRENT_FRAGMENTS > 1
@@ -107,6 +107,18 @@ const CONCURRENT_ARGS = Number.isFinite(CONCURRENT_FRAGMENTS) && CONCURRENT_FRAG
   : [];
 
 const activeJobs = new Map();
+
+let aria2cAvailable = false;
+try {
+  const res = spawnSync('aria2c', ['--version'], { stdio: 'ignore' });
+  aria2cAvailable = res.status === 0;
+} catch {
+  aria2cAvailable = false;
+}
+
+const ARIA2C_ARGS = aria2cAvailable
+  ? ['--downloader', 'aria2c', '--downloader-args', 'aria2c:-x16 -s16 -k1M']
+  : [];
 
 function speedToMBps(value, unit) {
   const num = Number(value);
@@ -207,6 +219,7 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
     const args = withFfmpeg([
       ...formatArgs,
       ...CONCURRENT_ARGS,
+      ...ARIA2C_ARGS,
       '--no-warnings',
       '--newline',                    // one line per progress update
       '-o', path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
@@ -274,6 +287,7 @@ function downloadPlaylist({ id, url, format = 'mp4', quality = 'best' }, onProgr
     const args = withFfmpeg([
       ...formatArgs,
       ...CONCURRENT_ARGS,
+      ...ARIA2C_ARGS,
       '--yes-playlist',
       '--no-warnings',
       '--newline',
