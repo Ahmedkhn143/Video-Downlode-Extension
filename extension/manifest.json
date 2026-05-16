@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "PlaylistGet — Playlist Downloader",
+  "version": "1.0.0",
+  "description": "Download full playlists from YouTube, Facebook, Vimeo & 1000+ sites",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads",
+    "storage",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "http://localhost:7474/*",
+    "<all_urls>"
+  ],
+
+
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PlaylistGet"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+
+  
+}

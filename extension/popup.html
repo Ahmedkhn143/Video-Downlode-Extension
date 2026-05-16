@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlaylistGet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 400px;
+      min-height: 500px;
+      background: #0e0f14;
+      color: #e2e4ef;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      background: #151721;
+      border-bottom: 1px solid #1e2130;
+    }
+    .logo {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #4f7cff, #a259ff);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .header-title { font-size: 14px; font-weight: 600; color: #fff; }
+    .header-sub   { font-size: 11px; color: #666; }
+    .status-dot {
+      margin-left: auto;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #2d2d2d;
+      transition: background 0.3s;
+    }
+    .status-dot.online  { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
+    .status-dot.offline { background: #ef4444; }
+
+    /* ── Detected Banner ── */
+    #detected-banner {
+      display: none;
+      margin: 12px 14px 0;
+      padding: 10px 12px;
+      background: #1a2340;
+      border: 1px solid #2a3a60;
+      border-radius: 8px;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    #detected-banner.show { display: flex; }
+    .banner-icon { font-size: 18px; flex-shrink: 0; }
+    .banner-text { flex: 1; }
+    .banner-label { font-size: 11px; color: #4f7cff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .banner-url   { font-size: 12px; color: #c0c4d8; margin-top: 2px; word-break: break-all; }
+    .banner-count { font-size: 11px; color: #666; margin-top: 2px; }
+    .btn-grab {
+      flex-shrink: 0;
+      padding: 6px 12px;
+      background: #4f7cff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-grab:hover { background: #3b6be0; }
+
+    /* ── Input Section ── */
+    .input-section { padding: 14px; }
+    .input-label { font-size: 11px; color: #666; margin-bottom: 6px; letter-spacing: 0.3px; }
+
+    .url-row {
+      display: flex;
+      gap: 8px;
+    }
+    .url-input {
+      flex: 1;
+      padding: 9px 12px;
+      background: #1a1c28;
+      border: 1px solid #252840;
+      border-radius: 8px;
+      color: #e2e4ef;
+      font-size: 12px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .url-input:focus { border-color: #4f7cff; }
+    .url-input::placeholder { color: #3a3d54; }
+
+    /* ── Format + Quality Row ── */
+    .options-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    select {
+      flex: 1;
+      padding: 8px 10px;
+      background: #1a1c28;
+      border: 1px solid #252840;
+      border-radius: 8px;
+      color: #c0c4d8;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+    select:focus { border-color: #4f7cff; }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+
+    .btn-primary {
+      flex: 1;
+      padding: 10px;
+      background: #4f7cff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-primary:hover   { background: #3b6be0; }
+    .btn-primary:active  { transform: scale(0.98); }
+    .btn-primary:disabled { background: #252840; color: #444; cursor: not-allowed; }
+
+    .btn-playlist {
+      flex: 1;
+      padding: 10px;
+      background: transparent;
+      color: #a259ff;
+      border: 1px solid #a259ff44;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-playlist:hover { background: #a259ff15; border-color: #a259ff; }
+
+    /* ── Error / Info ── */
+    #msg-box {
+      display: none;
+      margin: 0 14px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+    #msg-box.error   { background: #2a1414; border: 1px solid #6b1a1a; color: #f87171; display: block; }
+    #msg-box.success { background: #0f2a1a; border: 1px solid #145a30; color: #4ade80; display: block; }
+    #msg-box.info    { background: #141a2a; border: 1px solid #1e2d5a; color: #93c5fd; display: block; }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px 4px;
+      color: #333;
+      font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #1e2130;
+    }
+
+    /* ── Queue ── */
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px 6px;
+    }
+    .queue-title { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    .btn-clear-all {
+      font-size: 11px; color: #444; background: none; border: none; cursor: pointer;
+    }
+    .btn-clear-all:hover { color: #ef4444; }
+
+    #queue-list { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+    .queue-empty {
+      text-align: center;
+      padding: 24px 0;
+      color: #333;
+      font-size: 12px;
+    }
+    .queue-empty-icon { font-size: 28px; display: block; margin-bottom: 6px; opacity: 0.4; }
+
+    /* ── Queue Item ── */
+    .q-item {
+      background: #151721;
+      border: 1px solid #1e2130;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .q-top { display: flex; align-items: center; gap: 8px; }
+    .q-icon { font-size: 14px; flex-shrink: 0; }
+    .q-name {
+      flex: 1;
+      font-size: 12px;
+      color: #c0c4d8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .q-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .q-badge.downloading { background: #1a2a4a; color: #4f7cff; }
+    .q-badge.done        { background: #0f2a1a; color: #22c55e; }
+    .q-badge.error       { background: #2a1414; color: #ef4444; }
+    .q-badge.queued      { background: #1e1a2a; color: #a259ff; }
+    .q-badge.playlist    { background: #2a1a2a; color: #c084fc; }
+
+    .q-progress-wrap {
+      margin-top: 7px;
+      height: 3px;
+      background: #1e2130;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .q-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4f7cff, #a259ff);
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+    .q-sub {
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #444;
+    }
+    .q-remove {
+      font-size: 10px;
+      color: #333;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px;
+    }
+    .q-remove:hover { color: #ef4444; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">⬇</div>
+    <div>
+      <div class="header-title">PlaylistGet</div>
+      <div class="header-sub">Playlist Downloader</div>
+    </div>
+    <div class="status-dot" id="status-dot" title="Backend status"></div>
+  </div>
+
+  <!-- Auto-detected banner -->
+  <div id="detected-banner">
+    <div class="banner-icon">🎬</div>
+    <div class="banner-text">
+      <div class="banner-label" id="detected-type">Playlist detected</div>
+      <div class="banner-url"  id="detected-url">—</div>
+      <div class="banner-count" id="detected-count"></div>
+    </div>
+    <button class="btn-grab" id="btn-grab">Download All</button>
+  </div>
+
+  <!-- Manual input -->
+  <div class="input-section">
+    <div class="input-label">Paste URL manually</div>
+    <div class="url-row">
+      <input class="url-input" id="url-input" type="text" placeholder="https://youtube.com/playlist?list=..." />
+    </div>
+    <div class="options-row">
+      <select id="sel-format">
+        <option value="mp4">MP4 (Video)</option>
+        <option value="mp3">MP3 (Audio)</option>
+        <option value="webm">WEBM</option>
+      </select>
+      <select id="sel-quality">
+        <option value="best">Best quality</option>
+        <option value="1080">1080p</option>
+        <option value="720">720p</option>
+        <option value="480">480p</option>
+        <option value="360">360p</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary"  id="btn-download">⬇ Download Video</button>
+      <button class="btn-playlist" id="btn-playlist">▶▶ Full Playlist</button>
+    </div>
+  </div>
+
+  <!-- Message box -->
+  <div id="msg-box"></div>
+
+  <!-- Queue -->
+  <div class="divider">Queue</div>
+  <div class="queue-header">
+    <span class="queue-title" id="queue-count">0 items</span>
+    <button class="btn-clear-all" id="btn-clear">Clear all</button>
+  </div>
+  <div id="queue-list">
+    <div class="queue-empty">
+      <span class="queue-empty-icon">📂</span>
+      No downloads yet
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
