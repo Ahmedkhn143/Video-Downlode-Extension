@@ -126,7 +126,7 @@ btnGrab.addEventListener('click', () => {
 // ── Core: start download via background ───────
 async function startDownload(job) {
   const id = Date.now().toString();
-  const item = { id, ...job, status: 'queued', progress: 0 };
+  const item = { id, ...job, status: 'queued', progress: 0, speed: null };
 
   queue.push(item);
   await saveQueue();
@@ -135,6 +135,15 @@ async function startDownload(job) {
 
   // Tell background service worker to handle it
   chrome.runtime.sendMessage({ action: 'startDownload', job: { id, ...job } });
+}
+
+// ── Cancel a running job on the backend ─────
+async function cancelJob(id) {
+  try {
+    await fetch(`${BACKEND}/cancel/${id}`, { method: 'POST' });
+  } catch {
+    // Backend might be offline or already stopped
+  }
 }
 
 // ── Queue persistence ─────────────────────────
@@ -161,7 +170,16 @@ function renderQueue() {
     return;
   }
 
-  queueList.innerHTML = queue.map(item => `
+  queueList.innerHTML = queue.map(item => {
+    const speedText = item.speed ? formatSpeed(item.speed) : '';
+    const leftText = item.type === 'playlist'
+      ? `${item.downloaded || 0}/${item.count || '?'} videos`
+      : (speedText || '');
+    const rightText = item.type === 'playlist'
+      ? `${item.progress}%${speedText ? ` • ${speedText}` : ''}`
+      : `${item.progress}%`;
+
+    return `
     <div class="q-item" id="qi-${item.id}">
       <div class="q-top">
         <span class="q-icon">${item.type === 'playlist' ? '🎵' : '🎬'}</span>
@@ -169,28 +187,48 @@ function renderQueue() {
         <span class="q-badge ${item.status}">${badgeText(item)}</span>
         <button class="q-remove" onclick="removeItem('${item.id}')">✕</button>
       </div>
-      ${item.status === 'downloading' || item.status === 'done' ? `
+      ${item.status === 'downloading' || item.status === 'done' || item.status === 'canceled' ? `
         <div class="q-progress-wrap">
           <div class="q-progress-bar" style="width:${item.progress}%"></div>
         </div>
         <div class="q-sub">
-          <span>${item.type === 'playlist' ? `${item.downloaded || 0}/${item.count || '?'} videos` : ''}</span>
-          <span>${item.progress}%</span>
+          <span>${leftText}</span>
+          <span>${rightText}</span>
         </div>` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function badgeText(item) {
   if (item.status === 'downloading') return 'Downloading';
   if (item.status === 'done')        return '✓ Done';
   if (item.status === 'error')       return '✗ Error';
+  if (item.status === 'canceled')    return 'Canceled';
   if (item.type   === 'playlist')    return 'Playlist';
   return 'Queued';
 }
 
+function formatSpeed(speed) {
+  const val = Number(speed);
+  if (!Number.isFinite(val) || val <= 0) return '';
+  return `${val.toFixed(2)} MB/s`;
+}
+
 // ── Remove item ───────────────────────────────
 window.removeItem = async (id) => {
+  const item = queue.find(i => i.id === id);
+  if (!item) return;
+
+  if (item.status === 'downloading' || item.status === 'queued') {
+    await cancelJob(id);
+    item.status = 'canceled';
+    item.speed = null;
+    await saveQueue();
+    renderQueue();
+    return;
+  }
+
   queue = queue.filter(i => i.id !== id);
   await saveQueue();
   renderQueue();
@@ -211,6 +249,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     item.status     = msg.status;
     item.progress   = msg.progress;
     item.downloaded = msg.downloaded;
+    item.speed      = msg.speed;
     await saveQueue();
     renderQueue();
   }

@@ -58,11 +58,14 @@ app.post('/download', async (req, res) => {
 
   // Start download in background (don't await — respond immediately)
   downloader.downloadVideo({ id, url, format, quality }, (update) => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id] = { ...jobs[id], ...update };
   }).then(() => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id].status   = 'done';
     jobs[id].progress = 100;
   }).catch((err) => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id].status = 'error';
     jobs[id].error  = err.message;
     console.error(`[Job ${id}] Error:`, err.message);
@@ -81,16 +84,30 @@ app.post('/download-playlist', async (req, res) => {
 
   // Start playlist download in background
   downloader.downloadPlaylist({ id, url, format, quality }, (update) => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id] = { ...jobs[id], ...update };
   }).then(() => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id].status   = 'done';
     jobs[id].progress = 100;
   }).catch((err) => {
+    if (jobs[id]?.status === 'canceled') return;
     jobs[id].status = 'error';
     jobs[id].error  = err.message;
     console.error(`[Playlist Job ${id}] Error:`, err.message);
   });
 
+  res.json({ ok: true, id });
+});
+
+// ── Cancel a running download ─────────────────
+app.post('/cancel/:id', (req, res) => {
+  const { id } = req.params;
+  const job = jobs[id];
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  downloader.cancelDownload(id);
+  jobs[id] = { ...job, status: 'canceled' };
   res.json({ ok: true, id });
 });
 

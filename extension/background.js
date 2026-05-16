@@ -59,13 +59,16 @@ async function pollProgress(id) {
       const data = await res.json();
 
       if (data.status === 'done') {
-        notifyProgress(id, 'done', 100, data.downloaded);
+        notifyProgress(id, 'done', 100, data.downloaded, data.speed);
         break;
       } else if (data.status === 'error') {
-        notifyStatus(id, 'error', data.progress || 0);
+        notifyStatus(id, 'error', data.progress || 0, data.speed);
+        break;
+      } else if (data.status === 'canceled') {
+        notifyStatus(id, 'canceled', data.progress || 0, data.speed);
         break;
       } else {
-        notifyProgress(id, 'downloading', data.progress || 0, data.downloaded);
+        notifyProgress(id, 'downloading', data.progress || 0, data.downloaded, data.speed);
       }
     } catch {
       // Backend might be busy, retry
@@ -74,15 +77,15 @@ async function pollProgress(id) {
 }
 
 // ── Send progress to popup ────────────────────
-function notifyProgress(id, status, progress, downloaded = 0) {
+function notifyProgress(id, status, progress, downloaded = 0, speed = null) {
   chrome.runtime.sendMessage({
     action: 'progress',
-    id, status, progress, downloaded
+    id, status, progress, downloaded, speed
   }).catch(() => {}); // popup might be closed
 }
 
-function notifyStatus(id, status, progress) {
-  notifyProgress(id, status, progress);
+function notifyStatus(id, status, progress, speed = null) {
+  notifyProgress(id, status, progress, 0, speed);
 }
 
 // ── Utility ───────────────────────────────────
