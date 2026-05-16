@@ -171,6 +171,10 @@ function renderQueue() {
   }
 
   queueList.innerHTML = queue.map(item => {
+    const isAudio = item.format === 'mp3';
+    const icon = item.type === 'playlist'
+      ? (isAudio ? '🎵' : '🎬')
+      : (isAudio ? '🎵' : '🎬');
     const speedText = item.speed ? formatSpeed(item.speed) : '';
     const leftText = item.type === 'playlist'
       ? `${item.downloaded || 0}/${item.count || '?'} videos`
@@ -182,10 +186,10 @@ function renderQueue() {
     return `
     <div class="q-item" id="qi-${item.id}">
       <div class="q-top">
-        <span class="q-icon">${item.type === 'playlist' ? '🎵' : '🎬'}</span>
+        <span class="q-icon">${icon}</span>
         <span class="q-name">${item.title || item.url}</span>
         <span class="q-badge ${item.status}">${badgeText(item)}</span>
-        <button class="q-remove" onclick="removeItem('${item.id}')">✕</button>
+        <button class="q-remove" type="button" data-id="${item.id}">✕</button>
       </div>
       ${item.status === 'downloading' || item.status === 'done' || item.status === 'canceled' ? `
         <div class="q-progress-wrap">
@@ -216,7 +220,7 @@ function formatSpeed(speed) {
 }
 
 // ── Remove item ───────────────────────────────
-window.removeItem = async (id) => {
+async function handleRemove(id) {
   const item = queue.find(i => i.id === id);
   if (!item) return;
 
@@ -232,7 +236,15 @@ window.removeItem = async (id) => {
   queue = queue.filter(i => i.id !== id);
   await saveQueue();
   renderQueue();
-};
+}
+
+queueList.addEventListener('click', async (event) => {
+  const btn = event.target.closest('.q-remove');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!id) return;
+  await handleRemove(id);
+});
 
 // ── Clear all ─────────────────────────────────
 btnClear.addEventListener('click', async () => {
