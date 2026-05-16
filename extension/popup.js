@@ -24,9 +24,22 @@ const detectedCount  = document.getElementById('detected-count');
 
 // Local queue (stored in chrome.storage.local)
 let queue = [];
+let lastVideoQuality = selQuality.value;
+
+function updateQualityForFormat() {
+  if (selFormat.value === 'mp3') {
+    if (selQuality.value !== 'best') lastVideoQuality = selQuality.value;
+    selQuality.value = 'best';
+    selQuality.disabled = true;
+  } else {
+    selQuality.disabled = false;
+    if (lastVideoQuality) selQuality.value = lastVideoQuality;
+  }
+}
 
 // ── Init ──────────────────────────────────────
 async function init() {
+  updateQualityForFormat();
   await checkBackend();
   await loadQueue();
   await getDetectedUrl();
@@ -114,6 +127,8 @@ btnPlaylist.addEventListener('click', async () => {
     btnPlaylist.textContent = '▶▶ Full Playlist';
   }
 });
+
+selFormat.addEventListener('change', updateQualityForFormat);
 
 // ── Grab detected URL ─────────────────────────
 btnGrab.addEventListener('click', () => {
