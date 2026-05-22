@@ -59,16 +59,16 @@ async function pollProgress(id) {
       const data = await res.json();
 
       if (data.status === 'done') {
-        notifyProgress(id, 'done', 100, data.downloaded, data.speed);
+        notifyProgress(id, 'done', 100, data.downloaded, data.speed, data.total);
         break;
       } else if (data.status === 'error') {
-        notifyStatus(id, 'error', data.progress || 0, data.speed);
+        notifyStatus(id, 'error', data.progress || 0, data.speed, data.total);
         break;
       } else if (data.status === 'canceled') {
-        notifyStatus(id, 'canceled', data.progress || 0, data.speed);
+        notifyStatus(id, 'canceled', data.progress || 0, data.speed, data.total);
         break;
       } else {
-        notifyProgress(id, 'downloading', data.progress || 0, data.downloaded, data.speed);
+        notifyProgress(id, 'downloading', data.progress || 0, data.downloaded, data.speed, data.total);
       }
     } catch {
       // Backend might be busy, retry
@@ -77,15 +77,15 @@ async function pollProgress(id) {
 }
 
 // ── Send progress to popup ────────────────────
-function notifyProgress(id, status, progress, downloaded = 0, speed = null) {
+function notifyProgress(id, status, progress, downloaded = 0, speed = null, total = null) {
   chrome.runtime.sendMessage({
     action: 'progress',
-    id, status, progress, downloaded, speed
+    id, status, progress, downloaded, speed, total
   }).catch(() => {}); // popup might be closed
 }
 
-function notifyStatus(id, status, progress, speed = null) {
-  notifyProgress(id, status, progress, 0, speed);
+function notifyStatus(id, status, progress, speed = null, total = null) {
+  notifyProgress(id, status, progress, 0, speed, total);
 }
 
 // ── Utility ───────────────────────────────────

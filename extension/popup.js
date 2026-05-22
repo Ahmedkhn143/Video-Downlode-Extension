@@ -25,6 +25,8 @@ const detectedCount  = document.getElementById('detected-count');
 // Local queue (stored in chrome.storage.local)
 let queue = [];
 let lastVideoQuality = selQuality.value;
+let backendOnline = false;
+let syncTimer = null;
 
 function updateQualityForFormat() {
   if (selFormat.value === 'mp3') {
@@ -42,6 +44,10 @@ async function init() {
   updateQualityForFormat();
   await checkBackend();
   await loadQueue();
+  if (backendOnline) {
+    await syncQueueWithBackend();
+    startQueueSync();
+  }
   await getDetectedUrl();
 }
 
@@ -50,10 +56,12 @@ async function checkBackend() {
   try {
     const res = await fetch(`${BACKEND}/ping`, { signal: AbortSignal.timeout(2000) });
     if (res.ok) {
+      backendOnline = true;
       statusDot.classList.add('online');
       statusDot.title = 'Backend running ✓';
     } else throw new Error();
   } catch {
+    backendOnline = false;
     statusDot.classList.add('offline');
     statusDot.title = 'Backend offline — start server.js first';
     showMsg('Backend offline. Run: node server.js in your backend folder.', 'error');
@@ -141,7 +149,15 @@ btnGrab.addEventListener('click', () => {
 // ── Core: start download via background ───────
 async function startDownload(job) {
   const id = Date.now().toString();
-  const item = { id, ...job, status: 'queued', progress: 0, speed: null };
+  const item = {
+    id,
+    ...job,
+    status: 'queued',
+    progress: 0,
+    speed: null,
+    downloaded: 0,
+    total: job.count || job.total || null,
+  };
 
   queue.push(item);
   await saveQueue();
@@ -172,6 +188,69 @@ async function saveQueue() {
   await chrome.storage.local.set({ queue });
 }
 
+// ── Sync queue status from backend ───────────
+async function syncQueueWithBackend() {
+  if (!backendOnline || queue.length === 0) return;
+
+  try {
+    const res = await fetch(`${BACKEND}/jobs`, { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) return;
+    const jobs = await res.json();
+
+    let changed = false;
+    for (const item of queue) {
+      const job = jobs[item.id];
+      if (!job) continue;
+
+      if (job.status && job.status !== item.status) {
+        item.status = job.status;
+        changed = true;
+      }
+
+      if (Number.isFinite(job.progress)) {
+        const nextProgress = Math.round(job.progress);
+        if (nextProgress !== item.progress) {
+          item.progress = nextProgress;
+          changed = true;
+        }
+      }
+
+      if (Number.isFinite(job.downloaded) && job.downloaded !== item.downloaded) {
+        item.downloaded = job.downloaded;
+        changed = true;
+      }
+
+      if (Number.isFinite(job.total) && job.total !== item.total) {
+        item.total = job.total;
+        if (!item.count) item.count = job.total;
+        changed = true;
+      }
+
+      if (Number.isFinite(job.speed) && job.speed !== item.speed) {
+        item.speed = job.speed;
+        changed = true;
+      }
+
+      if (job.status === 'done' && item.progress !== 100) {
+        item.progress = 100;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await saveQueue();
+      renderQueue();
+    }
+  } catch {
+    // Backend might be offline or busy
+  }
+}
+
+function startQueueSync() {
+  if (syncTimer) return;
+  syncTimer = setInterval(syncQueueWithBackend, 2000);
+}
+
 // ── Render queue ──────────────────────────────
 function renderQueue() {
   queueCount.textContent = `${queue.length} item${queue.length !== 1 ? 's' : ''}`;
@@ -191,12 +270,17 @@ function renderQueue() {
       ? (isAudio ? '🎵' : '🎬')
       : (isAudio ? '🎵' : '🎬');
     const speedText = item.speed ? formatSpeed(item.speed) : '';
+    const totalVideos = item.type === 'playlist' ? (item.total || item.count) : null;
+    const downloaded = Number.isFinite(item.downloaded) ? item.downloaded : 0;
+    const displayDownloaded = item.status === 'done' && totalVideos ? totalVideos : downloaded;
+    const remaining = totalVideos ? Math.max(totalVideos - displayDownloaded, 0) : null;
+
     const leftText = item.type === 'playlist'
-      ? `${item.downloaded || 0}/${item.count || '?'} videos`
+      ? `${displayDownloaded}/${totalVideos || '?'} videos${remaining !== null ? ` • ${remaining} remaining` : ''}`
       : (speedText || '');
     const rightText = item.type === 'playlist'
       ? `${item.progress}%${speedText ? ` • ${speedText}` : ''}`
-      : `${item.progress}%`;
+      : `${item.progress}%${speedText ? ` • ${speedText}` : ''}`;
 
     return `
     <div class="q-item" id="qi-${item.id}">
@@ -274,9 +358,14 @@ chrome.runtime.onMessage.addListener(async (msg) => {
     const item = queue.find(i => i.id === msg.id);
     if (!item) return;
     item.status     = msg.status;
-    item.progress   = msg.progress;
-    item.downloaded = msg.downloaded;
-    item.speed      = msg.speed;
+    if (Number.isFinite(msg.progress)) item.progress = Math.round(msg.progress);
+    if (Number.isFinite(msg.downloaded)) item.downloaded = msg.downloaded;
+    if (Number.isFinite(msg.speed)) item.speed = msg.speed;
+    if (Number.isFinite(msg.total)) {
+      item.total = msg.total;
+      if (!item.count) item.count = msg.total;
+    }
+    if (msg.status === 'done') item.progress = 100;
     await saveQueue();
     renderQueue();
   }

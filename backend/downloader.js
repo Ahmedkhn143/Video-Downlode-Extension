@@ -99,7 +99,7 @@ function withFfmpeg(args) {
 const DOWNLOAD_DIR = path.join(os.homedir(), 'Downloads', 'PlaylistGet');
 
 const CONCURRENT_FRAGMENTS = Number.parseInt(
-  process.env.YTDLP_CONCURRENT_FRAGMENTS || '16',
+  process.env.YTDLP_CONCURRENT_FRAGMENTS || '32',
   10
 );
 const CONCURRENT_ARGS = Number.isFinite(CONCURRENT_FRAGMENTS) && CONCURRENT_FRAGMENTS > 1
@@ -116,8 +116,13 @@ try {
   aria2cAvailable = false;
 }
 
-const ARIA2C_ARGS = aria2cAvailable
-  ? ['--downloader', 'aria2c', '--downloader-args', 'aria2c:-x16 -s16 -k1M']
+const ARIA2C_CONNECTIONS = Number.parseInt(
+  process.env.ARIA2C_CONNECTIONS || '32',
+  10
+);
+
+const ARIA2C_ARGS = aria2cAvailable && Number.isFinite(ARIA2C_CONNECTIONS) && ARIA2C_CONNECTIONS > 1
+  ? ['--downloader', 'aria2c', '--downloader-args', `aria2c:-x${ARIA2C_CONNECTIONS} -s${ARIA2C_CONNECTIONS} -k1M`]
   : [];
 
 function speedToMBps(value, unit) {
@@ -140,6 +145,10 @@ function parseSpeedMB(line) {
   const mbps = speedToMBps(match[1], match[2]);
   if (!Number.isFinite(mbps)) return null;
   return Math.round(mbps * 100) / 100;
+}
+
+function splitLines(chunk) {
+  return chunk.toString().split(/\r?\n/);
 }
 
 // ── Map quality to yt-dlp format string ───────
@@ -232,23 +241,40 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
 
     let lastSpeed = null;
 
-    proc.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n');
-      for (const line of lines) {
-        const speed = parseSpeedMB(line);
-        if (speed !== null) lastSpeed = speed;
+    const handleVideoLine = (line) => {
+      let handled = false;
+      const speed = parseSpeedMB(line);
+      if (speed !== null) {
+        lastSpeed = speed;
+        handled = true;
+      }
 
-        // Parse yt-dlp progress: "[download]  45.3% of 120.50MiB ..."
-        const match = line.match(/\[download\]\s+([\d.]+)%/);
-        if (match) {
-          const progress = Math.round(parseFloat(match[1]));
-          onProgress({ status: 'downloading', progress, speed: lastSpeed });
-        }
+      // Parse yt-dlp progress: "[download]  45.3% of 120.50MiB ..."
+      const match = line.match(/\[download\]\s+([\d.]+)%/);
+      if (match) {
+        const progress = Math.round(parseFloat(match[1]));
+        onProgress({ status: 'downloading', progress, speed: lastSpeed });
+        handled = true;
+      }
+
+      return handled;
+    };
+
+    proc.stdout.on('data', (data) => {
+      for (const line of splitLines(data)) {
+        if (!line.trim()) continue;
+        handleVideoLine(line);
       }
     });
 
     proc.stderr.on('data', (data) => {
-      console.error(`[Job ${id}] stderr:`, data.toString().trim());
+      for (const line of splitLines(data)) {
+        if (!line.trim()) continue;
+        const handled = handleVideoLine(line);
+        if (!handled) {
+          console.error(`[Job ${id}] stderr:`, line.trim());
+        }
+      }
     });
 
     proc.on('close', (code) => {
@@ -300,50 +326,85 @@ function downloadPlaylist({ id, url, format = 'mp4', quality = 'best' }, onProgr
     activeJobs.set(id, proc);
 
     let totalVideos     = 0;
-    let downloadedCount = 0;
-    let lastSpeed = null;
+    let currentIndex    = 0;
+    let completedCount  = 0;
+    let lastSpeed       = null;
+    let lastVideoPct    = null;
 
-    proc.stdout.on('data', (data) => {
-      const lines = data.toString().split('\n');
-      for (const line of lines) {
+    const handlePlaylistLine = (line) => {
+      let handled = false;
 
-        const speed = parseSpeedMB(line);
-        if (speed !== null) lastSpeed = speed;
+      const speed = parseSpeedMB(line);
+      if (speed !== null) {
+        lastSpeed = speed;
+        handled = true;
+      }
 
-        // Detect "Downloading video X of Y"
-        const videoMatch = line.match(/Downloading video (\d+) of (\d+)/i);
-        if (videoMatch) {
-          downloadedCount = parseInt(videoMatch[1]);
-          totalVideos     = parseInt(videoMatch[2]);
-        }
+      // Detect "Downloading video X of Y" or "Downloading item X of Y"
+      const videoMatch = line.match(/Downloading (?:video|item)\s+(\d+)\s+of\s+(\d+)/i);
+      if (videoMatch) {
+        currentIndex   = parseInt(videoMatch[1], 10);
+        totalVideos    = parseInt(videoMatch[2], 10);
+        completedCount = Math.max(currentIndex - 1, completedCount);
+        handled = true;
 
-        // Detect percentage progress for current video
-        const pctMatch = line.match(/\[download\]\s+([\d.]+)%/);
-        if (pctMatch && totalVideos > 0) {
-          const videoProgress = parseFloat(pctMatch[1]);
-          // Overall progress = (completed videos + current video %) / total
+        if (lastVideoPct !== null && totalVideos > 0) {
           const overall = Math.round(
-            ((downloadedCount - 1 + videoProgress / 100) / totalVideos) * 100
+            ((completedCount + lastVideoPct / 100) / totalVideos) * 100
           );
           onProgress({
             status:     'downloading',
             progress:   Math.min(overall, 99),
-            downloaded: downloadedCount,
+            downloaded: completedCount,
             total:      totalVideos,
             speed:      lastSpeed,
           });
         }
       }
+
+      // Detect percentage progress for current video
+      const pctMatch = line.match(/\[download\]\s+([\d.]+)%/);
+      if (pctMatch) {
+        lastVideoPct = parseFloat(pctMatch[1]);
+        if (totalVideos > 0) {
+          const overall = Math.round(
+            ((completedCount + lastVideoPct / 100) / totalVideos) * 100
+          );
+          onProgress({
+            status:     'downloading',
+            progress:   Math.min(overall, 99),
+            downloaded: completedCount,
+            total:      totalVideos,
+            speed:      lastSpeed,
+          });
+        }
+        handled = true;
+      }
+
+      return handled;
+    };
+
+    proc.stdout.on('data', (data) => {
+      for (const line of splitLines(data)) {
+        if (!line.trim()) continue;
+        handlePlaylistLine(line);
+      }
     });
 
     proc.stderr.on('data', (data) => {
-      console.error(`[Playlist Job ${id}] stderr:`, data.toString().trim());
+      for (const line of splitLines(data)) {
+        if (!line.trim()) continue;
+        const handled = handlePlaylistLine(line);
+        if (!handled) {
+          console.error(`[Playlist Job ${id}] stderr:`, line.trim());
+        }
+      }
     });
 
     proc.on('close', (code) => {
       activeJobs.delete(id);
       if (code === 0) {
-        onProgress({ status: 'done', progress: 100, downloaded: totalVideos, total: totalVideos });
+        onProgress({ status: 'done', progress: 100, downloaded: totalVideos, total: totalVideos, speed: lastSpeed });
         resolve();
       } else {
         reject(new Error(`yt-dlp exited with code ${code}`));
