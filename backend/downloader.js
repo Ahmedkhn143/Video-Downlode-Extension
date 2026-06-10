@@ -50,6 +50,10 @@ const wingetLinks = process.env.LOCALAPPDATA
 addToPath(wingetLinks);
 
 let ytDlpBin = null;
+const localYtDlp = path.join(__dirname, 'yt-dlp.exe');
+if (fs.existsSync(localYtDlp)) {
+  ytDlpBin = localYtDlp;
+}
 let ffmpegBinDir = null;
 if (wingetLinks && fs.existsSync(wingetLinks)) {
   const ytDlpLink = path.join(wingetLinks, 'yt-dlp.exe');
@@ -229,6 +233,7 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
       ...formatArgs,
       ...CONCURRENT_ARGS,
       ...ARIA2C_ARGS,
+      '--ignore-errors',
       '--no-warnings',
       '--newline',                    // one line per progress update
       '-o', path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
@@ -315,6 +320,7 @@ function downloadPlaylist({ id, url, format = 'mp4', quality = 'best' }, onProgr
       ...CONCURRENT_ARGS,
       ...ARIA2C_ARGS,
       '--yes-playlist',
+      '--ignore-errors',
       '--no-warnings',
       '--newline',
       '-o', outputTemplate,
