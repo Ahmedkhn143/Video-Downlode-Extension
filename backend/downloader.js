@@ -225,18 +225,24 @@ function getPlaylistInfo(url) {
 }
 
 // ── Download single video ─────────────────────
-function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress) {
+function downloadVideo({ id, url, format = 'mp4', quality = 'best', embed = false, downloadPath = null }, onProgress) {
   return new Promise((resolve, reject) => {
     const formatArgs = buildFormatArg(format, quality);
+    const embedArgs = embed ? ['--embed-metadata', '--embed-thumbnail'] : [];
+    const targetDir = downloadPath && downloadPath.trim() ? downloadPath.trim() : DOWNLOAD_DIR;
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
 
     const args = withFfmpeg([
       ...formatArgs,
+      ...embedArgs,
       ...CONCURRENT_ARGS,
       ...ARIA2C_ARGS,
       '--ignore-errors',
       '--no-warnings',
       '--newline',                    // one line per progress update
-      '-o', path.join(DOWNLOAD_DIR, '%(title)s.%(ext)s'),
+      '-o', path.join(targetDir, '%(title)s.%(ext)s'),
       url,
     ]);
 
@@ -245,6 +251,7 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
     activeJobs.set(id, proc);
 
     let lastSpeed = null;
+    let progressVal = 0;
 
     const handleVideoLine = (line) => {
       let handled = false;
@@ -257,8 +264,8 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
       // Parse yt-dlp progress: "[download]  45.3% of 120.50MiB ..."
       const match = line.match(/\[download\]\s+([\d.]+)%/);
       if (match) {
-        const progress = Math.round(parseFloat(match[1]));
-        onProgress({ status: 'downloading', progress, speed: lastSpeed });
+        progressVal = Math.round(parseFloat(match[1]));
+        onProgress({ status: 'downloading', progress: progressVal, speed: lastSpeed });
         handled = true;
       }
 
@@ -284,7 +291,7 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
 
     proc.on('close', (code) => {
       activeJobs.delete(id);
-      if (code === 0) {
+      if (code === 0 || (code === 1 && progressVal >= 99)) {
         onProgress({ status: 'done', progress: 100 });
         resolve();
       } else {
@@ -304,21 +311,29 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best' }, onProgress
 }
 
 // ── Download full playlist ────────────────────
-function downloadPlaylist({ id, url, format = 'mp4', quality = 'best' }, onProgress) {
+function downloadPlaylist({ id, url, format = 'mp4', quality = 'best', embed = false, playlistItems = null, downloadPath = null }, onProgress) {
   return new Promise((resolve, reject) => {
     const formatArgs = buildFormatArg(format, quality);
+    const embedArgs = embed ? ['--embed-metadata', '--embed-thumbnail'] : [];
+    const playlistItemsArg = playlistItems ? ['--playlist-items', playlistItems] : [];
+    const targetDir = downloadPath && downloadPath.trim() ? downloadPath.trim() : DOWNLOAD_DIR;
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
 
     // Save each video in its own playlist subfolder
     const outputTemplate = path.join(
-      DOWNLOAD_DIR,
+      targetDir,
       '%(playlist_title)s',
       '%(playlist_index)02d - %(title)s.%(ext)s'
     );
 
     const args = withFfmpeg([
       ...formatArgs,
+      ...embedArgs,
       ...CONCURRENT_ARGS,
       ...ARIA2C_ARGS,
+      ...playlistItemsArg,
       '--yes-playlist',
       '--ignore-errors',
       '--no-warnings',
@@ -409,8 +424,9 @@ function downloadPlaylist({ id, url, format = 'mp4', quality = 'best' }, onProgr
 
     proc.on('close', (code) => {
       activeJobs.delete(id);
-      if (code === 0) {
-        onProgress({ status: 'done', progress: 100, downloaded: totalVideos, total: totalVideos, speed: lastSpeed });
+      if (code === 0 || (code === 1 && completedCount > 0)) {
+        const finalTotal = totalVideos || completedCount;
+        onProgress({ status: 'done', progress: 100, downloaded: finalTotal, total: finalTotal, speed: lastSpeed });
         resolve();
       } else {
         reject(new Error(`yt-dlp exited with code ${code}`));
@@ -440,4 +456,19 @@ function cancelDownload(id) {
   return true;
 }
 
-module.exports = { getPlaylistInfo, downloadVideo, downloadPlaylist, cancelDownload };
+function openDownloadsFolder(customPath) {
+  const targetDir = customPath && customPath.trim() ? customPath.trim() : DOWNLOAD_DIR;
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  const { exec } = require('child_process');
+  if (process.platform === 'win32') {
+    exec(`explorer.exe "${targetDir}"`);
+  } else if (process.platform === 'darwin') {
+    exec(`open "${targetDir}"`);
+  } else {
+    exec(`xdg-open "${targetDir}"`);
+  }
+}
+
+module.exports = { getPlaylistInfo, downloadVideo, downloadPlaylist, cancelDownload, openDownloadsFolder };

@@ -17,9 +17,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // ── Main download handler ─────────────────────
 async function handleDownload(job) {
-  const { id, url, type, format, quality } = job;
+  const { id, url, type, format, quality, embed, playlistItems, downloadPath } = job;
 
-  notifyProgress(id, 'downloading', 5);
+  notifyProgress(id, 'queued', 0);
 
   try {
     // 1. Tell backend to start downloading
@@ -28,7 +28,7 @@ async function handleDownload(job) {
     const res = await fetch(`${BACKEND}${endpoint}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id, url, format, quality }),
+      body:    JSON.stringify({ id, url, format, quality, embed, playlistItems, downloadPath }),
     });
 
     if (!res.ok) {
@@ -66,6 +66,9 @@ async function pollProgress(id) {
         break;
       } else if (data.status === 'canceled') {
         notifyStatus(id, 'canceled', data.progress || 0, data.speed, data.total);
+        break;
+      } else if (data.status === 'paused') {
+        notifyStatus(id, 'paused', data.progress || 0, data.speed, data.total);
         break;
       } else {
         notifyProgress(id, 'downloading', data.progress || 0, data.downloaded, data.speed, data.total);

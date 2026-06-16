@@ -22,6 +22,36 @@ const detectedUrl    = document.getElementById('detected-url');
 const detectedType   = document.getElementById('detected-type');
 const detectedCount  = document.getElementById('detected-count');
 
+const btnOpenFolder  = document.getElementById('btn-open-folder');
+const playlistRangeRow = document.getElementById('playlist-range-row');
+const playlistRangeInput = document.getElementById('playlist-range-input');
+const chkEmbed       = document.getElementById('chk-embed');
+const pathInput      = document.getElementById('path-input');
+
+// Playlist patterns to toggle range selection field
+const PLAYLIST_PATTERNS = [
+  /[?&]list=[A-Za-z0-9_-]+/,
+  /\/playlist\//i,
+  /\/playlists\//i,
+  /\/channel\/.*\/videos/i,
+  /\/sets\//i,
+  /\/album\//i,
+  /[?&]collection=/i,
+];
+
+function isPlaylistUrl(url) {
+  return PLAYLIST_PATTERNS.some(p => p.test(url));
+}
+
+function updateRangeInputVisibility() {
+  const url = urlInput.value.trim();
+  if (isPlaylistUrl(url)) {
+    playlistRangeRow.classList.add('show');
+  } else {
+    playlistRangeRow.classList.remove('show');
+  }
+}
+
 // Local queue (stored in chrome.storage.local)
 let queue = [];
 let lastVideoQuality = selQuality.value;
@@ -49,6 +79,7 @@ async function init() {
     startQueueSync();
   }
   await getDetectedUrl();
+  updateRangeInputVisibility();
 }
 
 // ── Backend health check ──────────────────────
@@ -80,6 +111,7 @@ async function getDetectedUrl() {
         detectedCount.textContent = response.count ? `${response.count} videos` : '';
         detectedBanner.classList.add('show');
         urlInput.value = response.url;
+        updateRangeInputVisibility();
       }
     });
   } catch (e) {
@@ -97,6 +129,8 @@ btnDownload.addEventListener('click', async () => {
     type:    'video',
     format:  selFormat.value,
     quality: selQuality.value,
+    embed:   chkEmbed.checked,
+    downloadPath: pathInput.value.trim(),
   });
 });
 
@@ -104,6 +138,8 @@ btnDownload.addEventListener('click', async () => {
 btnPlaylist.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   if (!url) { showMsg('Please enter a playlist URL.', 'error'); return; }
+
+  const playlistItems = playlistRangeInput.value.trim();
 
   showMsg('Fetching playlist info...', 'info');
   btnPlaylist.disabled = true;
@@ -127,6 +163,9 @@ btnPlaylist.addEventListener('click', async () => {
       quality: selQuality.value,
       title:   data.title,
       count:   data.count,
+      embed:   chkEmbed.checked,
+      playlistItems: playlistItems || null,
+      downloadPath: pathInput.value.trim(),
     });
   } catch (err) {
     showMsg(err.message, 'error');
@@ -137,6 +176,30 @@ btnPlaylist.addEventListener('click', async () => {
 });
 
 selFormat.addEventListener('change', updateQualityForFormat);
+
+// ── Toggle range visibility on URL input change ──
+urlInput.addEventListener('input', updateRangeInputVisibility);
+
+// ── Open Folder click listener ──────────────────
+btnOpenFolder.addEventListener('click', async () => {
+  try {
+    const res = await fetch(`${BACKEND}/open-folder`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ downloadPath: pathInput.value.trim() }),
+    });
+    if (res.ok) {
+      showMsg('Downloads folder opened.', 'success');
+    } else throw new Error();
+  } catch {
+    showMsg('Failed to open downloads folder. Start server first.', 'error');
+  }
+});
+
+// ── Save download path on input ─────────────────
+pathInput.addEventListener('input', async () => {
+  await chrome.storage.local.set({ downloadPath: pathInput.value.trim() });
+});
 
 // ── Grab detected URL ─────────────────────────
 btnGrab.addEventListener('click', () => {
@@ -179,8 +242,11 @@ async function cancelJob(id) {
 
 // ── Queue persistence ─────────────────────────
 async function loadQueue() {
-  const data = await chrome.storage.local.get('queue');
+  const data = await chrome.storage.local.get(['queue', 'downloadPath']);
   queue = data.queue || [];
+  if (data.downloadPath) {
+    pathInput.value = data.downloadPath;
+  }
   renderQueue();
 }
 
@@ -282,15 +348,25 @@ function renderQueue() {
       ? `${item.progress}%${speedText ? ` • ${speedText}` : ''}`
       : `${item.progress}%${speedText ? ` • ${speedText}` : ''}`;
 
+    let actionBtn = '';
+    if (item.status === 'downloading' || item.status === 'queued') {
+      actionBtn = `<button class="q-btn btn-pause" type="button" data-id="${item.id}" title="Pause">⏸</button>`;
+    } else if (item.status === 'paused') {
+      actionBtn = `<button class="q-btn btn-resume" type="button" data-id="${item.id}" title="Resume">▶</button>`;
+    }
+
     return `
     <div class="q-item" id="qi-${item.id}">
       <div class="q-top">
         <span class="q-icon">${icon}</span>
         <span class="q-name">${item.title || item.url}</span>
         <span class="q-badge ${item.status}">${badgeText(item)}</span>
-        <button class="q-remove" type="button" data-id="${item.id}">✕</button>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          ${actionBtn}
+          <button class="q-remove" type="button" data-id="${item.id}">✕</button>
+        </div>
       </div>
-      ${item.status === 'downloading' || item.status === 'done' || item.status === 'canceled' ? `
+      ${item.status === 'downloading' || item.status === 'done' || item.status === 'canceled' || item.status === 'paused' ? `
         <div class="q-progress-wrap">
           <div class="q-progress-bar" style="width:${item.progress}%"></div>
         </div>
@@ -308,6 +384,7 @@ function badgeText(item) {
   if (item.status === 'done')        return '✓ Done';
   if (item.status === 'error')       return '✗ Error';
   if (item.status === 'canceled')    return 'Canceled';
+  if (item.status === 'paused')      return 'Paused';
   if (item.type   === 'playlist')    return 'Playlist';
   return 'Queued';
 }
@@ -337,12 +414,67 @@ async function handleRemove(id) {
   renderQueue();
 }
 
+async function pauseJob(id) {
+  try {
+    const res = await fetch(`${BACKEND}/pause/${id}`, { method: 'POST' });
+    if (res.ok) {
+      const item = queue.find(i => i.id === id);
+      if (item) {
+        item.status = 'paused';
+        item.speed = null;
+        await saveQueue();
+        renderQueue();
+        showMsg('Download paused.', 'success');
+      }
+    }
+  } catch {
+    showMsg('Failed to pause download.', 'error');
+  }
+}
+
+async function resumeJob(id) {
+  try {
+    const res = await fetch(`${BACKEND}/resume/${id}`, { method: 'POST' });
+    if (res.ok) {
+      const item = queue.find(i => i.id === id);
+      if (item) {
+        item.status = 'queued';
+        item.speed = null;
+        item.progress = item.progress || 0;
+        await saveQueue();
+        renderQueue();
+        showMsg('Download resumed.', 'success');
+        
+        // Tell background SW to handle download polling again
+        chrome.runtime.sendMessage({ action: 'startDownload', job: item });
+      }
+    }
+  } catch {
+    showMsg('Failed to resume download.', 'error');
+  }
+}
+
 queueList.addEventListener('click', async (event) => {
-  const btn = event.target.closest('.q-remove');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (!id) return;
-  await handleRemove(id);
+  const removeBtn = event.target.closest('.q-remove');
+  if (removeBtn) {
+    const id = removeBtn.dataset.id;
+    if (id) await handleRemove(id);
+    return;
+  }
+
+  const pauseBtn = event.target.closest('.btn-pause');
+  if (pauseBtn) {
+    const id = pauseBtn.dataset.id;
+    if (id) await pauseJob(id);
+    return;
+  }
+
+  const resumeBtn = event.target.closest('.btn-resume');
+  if (resumeBtn) {
+    const id = resumeBtn.dataset.id;
+    if (id) await resumeJob(id);
+    return;
+  }
 });
 
 // ── Clear all ─────────────────────────────────

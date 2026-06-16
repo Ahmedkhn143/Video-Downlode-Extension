@@ -35,7 +35,6 @@
     .header-title { font-size: 14px; font-weight: 600; color: #fff; }
     .header-sub   { font-size: 11px; color: #666; }
     .status-dot {
-      margin-left: auto;
       width: 8px; height: 8px;
       border-radius: 50%;
       background: #2d2d2d;
@@ -226,6 +225,7 @@
     .q-badge.done        { background: #0f2a1a; color: #22c55e; }
     .q-badge.error       { background: #2a1414; color: #ef4444; }
     .q-badge.canceled    { background: #2a1f14; color: #f59e0b; }
+    .q-badge.paused      { background: #2a2214; color: #f59e0b; }
     .q-badge.queued      { background: #1e1a2a; color: #a259ff; }
     .q-badge.playlist    { background: #2a1a2a; color: #c084fc; }
 
@@ -258,6 +258,73 @@
       padding: 2px;
     }
     .q-remove:hover { color: #ef4444; }
+
+    .q-btn {
+      font-size: 10px;
+      color: #666;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 4px;
+      transition: color 0.2s;
+    }
+    .q-btn:hover { color: #4f7cff; }
+
+    /* ── Open Folder Button ── */
+    .btn-open-folder {
+      margin-left: auto;
+      margin-right: 12px;
+      padding: 5px 9px;
+      background: #1a1c28;
+      border: 1px solid #252840;
+      color: #c0c4d8;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-open-folder:hover {
+      background: #4f7cff15;
+      border-color: #4f7cff;
+      color: #fff;
+    }
+
+    /* ── Playlist Range Row ── */
+    .playlist-range-row {
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+    }
+    .playlist-range-row.show {
+      display: flex;
+    }
+
+    /* ── Checkbox Row ── */
+    .checkbox-row {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #8c8f9f;
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-label input {
+      width: 13px;
+      height: 13px;
+      accent-color: #4f7cff;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -269,6 +336,7 @@
       <div class="header-title">PlaylistGet</div>
       <div class="header-sub">Playlist Downloader</div>
     </div>
+    <button class="btn-open-folder" id="btn-open-folder" title="Open Downloads Folder">📁 Open Folder</button>
     <div class="status-dot" id="status-dot" title="Backend status"></div>
   </div>
 
@@ -289,6 +357,11 @@
     <div class="url-row">
       <input class="url-input" id="url-input" type="text" placeholder="https://youtube.com/playlist?list=..." />
     </div>
+    <!-- Playlist Range Selection -->
+    <div class="playlist-range-row" id="playlist-range-row">
+      <div class="input-label" style="margin-top: 8px; margin-bottom: 4px;">Playlist items (optional, e.g. 1-5, 8, 12-)</div>
+      <input class="url-input" id="playlist-range-input" type="text" placeholder="e.g. 1-5, 10, 20-25" />
+    </div>
     <div class="options-row">
       <select id="sel-format">
         <option value="mp4">MP4 (Video)</option>
@@ -303,6 +376,18 @@
         <option value="480">480p</option>
         <option value="360">360p</option>
       </select>
+    </div>
+    <!-- Embed Metadata & Thumbnail option -->
+    <div class="checkbox-row">
+      <label class="checkbox-label">
+        <input type="checkbox" id="chk-embed" checked />
+        Embed Video Metadata & Thumbnail
+      </label>
+    </div>
+    <!-- Download Path Input -->
+    <div style="margin-top: 10px; margin-bottom: 4px;">
+      <div class="input-label" style="margin-bottom: 4px;">Download folder path (optional)</div>
+      <input class="url-input" id="path-input" type="text" placeholder="Default: Downloads/PlaylistGet" style="width: 100%;" />
     </div>
     <div class="btn-row">
       <button class="btn-primary"  id="btn-download">⬇ Download Video</button>

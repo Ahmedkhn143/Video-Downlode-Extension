@@ -26,13 +26,79 @@ app.use(express.json());
 
 // ── In-memory job tracker ─────────────────────
 // Stores progress for each download job
-const jobs = {}; // { [id]: { status, progress, downloaded, total } }
+const jobs = {}; // { [id]: { status, progress, downloaded, total, type, url, ... } }
+
+// ── Queue Management ──────────────────────────
+const downloadQueue = []; // Array of job IDs waiting to be downloaded
+let activeCount = 0;
+const MAX_CONCURRENT = 2; // Concurrency limit
+
+function processNext() {
+  if (activeCount >= MAX_CONCURRENT) return;
+  if (downloadQueue.length === 0) return;
+
+  const nextJobId = downloadQueue.shift();
+  const jobParams = jobs[nextJobId];
+
+  if (!jobParams || jobParams.status === 'canceled') {
+    // Skip if job doesn't exist or was canceled
+    processNext();
+    return;
+  }
+
+  activeCount++;
+  jobParams.status = 'downloading';
+  jobParams.progress = 5; // progress started
+
+  console.log(`[Queue] Starting Job ${nextJobId}. Active: ${activeCount}`);
+
+  const downloadFn = jobParams.type === 'playlist' 
+    ? downloader.downloadPlaylist 
+    : downloader.downloadVideo;
+
+  downloadFn({
+    id: nextJobId,
+    url: jobParams.url,
+    format: jobParams.format,
+    quality: jobParams.quality,
+    embed: jobParams.embed,
+    playlistItems: jobParams.playlistItems,
+    downloadPath: jobParams.downloadPath
+  }, (update) => {
+    if (jobs[nextJobId]?.status === 'canceled') return;
+    jobs[nextJobId] = { ...jobs[nextJobId], ...update };
+  }).then(() => {
+    if (jobs[nextJobId]?.status === 'canceled') return;
+    jobs[nextJobId].status = 'done';
+    jobs[nextJobId].progress = 100;
+  }).catch((err) => {
+    if (jobs[nextJobId]?.status === 'canceled') return;
+    jobs[nextJobId].status = 'error';
+    jobs[nextJobId].error = err.message;
+    console.error(`[Job ${nextJobId}] Error:`, err.message);
+  }).finally(() => {
+    activeCount--;
+    console.log(`[Queue] Job ${nextJobId} finished. Active: ${activeCount}`);
+    processNext();
+  });
+}
 
 // ── Routes ────────────────────────────────────
 
 // Health check
 app.get('/ping', (req, res) => {
   res.json({ ok: true, version: '1.0.0' });
+});
+
+// ── Open downloads folder ──────────────────────
+app.post('/open-folder', (req, res) => {
+  const { downloadPath } = req.body;
+  try {
+    downloader.openDownloadsFolder(downloadPath);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Get playlist info (title + video count) ───
@@ -49,55 +115,57 @@ app.post('/playlist-info', async (req, res) => {
 });
 
 // ── Download single video ─────────────────────
-app.post('/download', async (req, res) => {
-  const { id, url, format, quality } = req.body;
+app.post('/download', (req, res) => {
+  const { id, url, format, quality, embed, downloadPath } = req.body;
   if (!id || !url) return res.status(400).json({ error: 'id and url are required' });
 
-  // Initialize job tracker
-  jobs[id] = { status: 'downloading', progress: 0, downloaded: 0 };
+  // Initialize job tracker with queued status
+  jobs[id] = {
+    id,
+    type: 'video',
+    url,
+    format,
+    quality,
+    embed,
+    downloadPath,
+    status: 'queued',
+    progress: 0,
+    downloaded: 0,
+    speed: null,
+    total: null
+  };
 
-  // Start download in background (don't await — respond immediately)
-  downloader.downloadVideo({ id, url, format, quality }, (update) => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id] = { ...jobs[id], ...update };
-  }).then(() => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id].status   = 'done';
-    jobs[id].progress = 100;
-  }).catch((err) => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id].status = 'error';
-    jobs[id].error  = err.message;
-    console.error(`[Job ${id}] Error:`, err.message);
-  });
-
-  // Immediately tell extension: "started"
+  downloadQueue.push(id);
   res.json({ ok: true, id });
+
+  processNext();
 });
 
 // ── Download full playlist ────────────────────
-app.post('/download-playlist', async (req, res) => {
-  const { id, url, format, quality } = req.body;
+app.post('/download-playlist', (req, res) => {
+  const { id, url, format, quality, embed, playlistItems, downloadPath } = req.body;
   if (!id || !url) return res.status(400).json({ error: 'id and url are required' });
 
-  jobs[id] = { status: 'downloading', progress: 0, downloaded: 0, total: 0 };
+  jobs[id] = {
+    id,
+    type: 'playlist',
+    url,
+    format,
+    quality,
+    embed,
+    playlistItems,
+    downloadPath,
+    status: 'queued',
+    progress: 0,
+    downloaded: 0,
+    speed: null,
+    total: null
+  };
 
-  // Start playlist download in background
-  downloader.downloadPlaylist({ id, url, format, quality }, (update) => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id] = { ...jobs[id], ...update };
-  }).then(() => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id].status   = 'done';
-    jobs[id].progress = 100;
-  }).catch((err) => {
-    if (jobs[id]?.status === 'canceled') return;
-    jobs[id].status = 'error';
-    jobs[id].error  = err.message;
-    console.error(`[Playlist Job ${id}] Error:`, err.message);
-  });
-
+  downloadQueue.push(id);
   res.json({ ok: true, id });
+
+  processNext();
 });
 
 // ── Cancel a running download ─────────────────
@@ -106,9 +174,56 @@ app.post('/cancel/:id', (req, res) => {
   const job = jobs[id];
   if (!job) return res.status(404).json({ error: 'Job not found' });
 
-  downloader.cancelDownload(id);
-  jobs[id] = { ...job, status: 'canceled' };
+  if (job.status === 'downloading') {
+    downloader.cancelDownload(id);
+  } else {
+    // Remove from wait queue if not yet active
+    const qIndex = downloadQueue.indexOf(id);
+    if (qIndex > -1) {
+      downloadQueue.splice(qIndex, 1);
+    }
+  }
+
+  jobs[id] = { ...job, status: 'canceled', speed: null };
   res.json({ ok: true, id });
+});
+
+// ── Pause a running download ──────────────────
+app.post('/pause/:id', (req, res) => {
+  const { id } = req.params;
+  const job = jobs[id];
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  if (job.status === 'downloading') {
+    downloader.cancelDownload(id);
+  } else {
+    // Remove from wait queue if not yet active
+    const qIndex = downloadQueue.indexOf(id);
+    if (qIndex > -1) {
+      downloadQueue.splice(qIndex, 1);
+    }
+  }
+
+  jobs[id] = { ...job, status: 'paused', speed: null };
+  res.json({ ok: true, id });
+});
+
+// ── Resume a paused download ──────────────────
+app.post('/resume/:id', (req, res) => {
+  const { id } = req.params;
+  const job = jobs[id];
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+
+  if (job.status !== 'paused' && job.status !== 'canceled') {
+    return res.status(400).json({ error: 'Job is not paused or canceled' });
+  }
+
+  // Put back in queue
+  jobs[id] = { ...job, status: 'queued', speed: null, error: null };
+  downloadQueue.push(id);
+  res.json({ ok: true, id });
+
+  processNext();
 });
 
 // ── Get progress for a job ────────────────────
