@@ -1,7 +1,7 @@
-// ─────────────────────────────────────────────
-//  PlaylistGet — popup.js
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NexDown â€” popup.js
 //  Handles all popup UI interactions
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BACKEND = 'http://localhost:7474';
 
@@ -69,7 +69,7 @@ function updateQualityForFormat() {
   }
 }
 
-// ── Init ──────────────────────────────────────
+// â”€â”€ Init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function init() {
   updateQualityForFormat();
   await checkBackend();
@@ -82,24 +82,24 @@ async function init() {
   updateRangeInputVisibility();
 }
 
-// ── Backend health check ──────────────────────
+// â”€â”€ Backend health check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function checkBackend() {
   try {
     const res = await fetch(`${BACKEND}/ping`, { signal: AbortSignal.timeout(2000) });
     if (res.ok) {
       backendOnline = true;
       statusDot.classList.add('online');
-      statusDot.title = 'Backend running ✓';
+      statusDot.title = 'Backend running âœ“';
     } else throw new Error();
   } catch {
     backendOnline = false;
     statusDot.classList.add('offline');
-    statusDot.title = 'Backend offline — start server.js first';
+    statusDot.title = 'Backend offline â€” start server.js first';
     showMsg('Backend offline. Run: node server.js in your backend folder.', 'error');
   }
 }
 
-// ── Get URL detected by content script ────────
+// â”€â”€ Get URL detected by content script â”€â”€â”€â”€â”€â”€â”€â”€
 async function getDetectedUrl() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -107,7 +107,7 @@ async function getDetectedUrl() {
       if (chrome.runtime.lastError) return;
       if (response && response.url) {
         detectedUrl.textContent   = response.url;
-        detectedType.textContent  = response.isPlaylist ? '🎵 Playlist detected' : '🎬 Video detected';
+        detectedType.textContent  = response.isPlaylist ? 'ðŸŽµ Playlist detected' : 'ðŸŽ¬ Video detected';
         detectedCount.textContent = response.count ? `${response.count} videos` : '';
         detectedBanner.classList.add('show');
         urlInput.value = response.url;
@@ -119,7 +119,7 @@ async function getDetectedUrl() {
   }
 }
 
-// ── Download single video ─────────────────────
+// â”€â”€ Download single video â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 btnDownload.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   if (!url) { showMsg('Please enter a URL first.', 'error'); return; }
@@ -134,7 +134,7 @@ btnDownload.addEventListener('click', async () => {
   });
 });
 
-// ── Download full playlist ────────────────────
+// â”€â”€ Download full playlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 btnPlaylist.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   if (!url) { showMsg('Please enter a playlist URL.', 'error'); return; }
@@ -171,16 +171,16 @@ btnPlaylist.addEventListener('click', async () => {
     showMsg(err.message, 'error');
   } finally {
     btnPlaylist.disabled = false;
-    btnPlaylist.textContent = '▶▶ Full Playlist';
+    btnPlaylist.textContent = 'â–¶â–¶ Full Playlist';
   }
 });
 
 selFormat.addEventListener('change', updateQualityForFormat);
 
-// ── Toggle range visibility on URL input change ──
+// â”€â”€ Toggle range visibility on URL input change â”€â”€
 urlInput.addEventListener('input', updateRangeInputVisibility);
 
-// ── Open Folder click listener ──────────────────
+// â”€â”€ Open Folder click listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 btnOpenFolder.addEventListener('click', async () => {
   try {
     const res = await fetch(`${BACKEND}/open-folder`, {
@@ -196,12 +196,12 @@ btnOpenFolder.addEventListener('click', async () => {
   }
 });
 
-// ── Save download path on input ─────────────────
+// â”€â”€ Save download path on input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 pathInput.addEventListener('input', async () => {
   await chrome.storage.local.set({ downloadPath: pathInput.value.trim() });
 });
 
-// ── Grab detected URL ─────────────────────────
+// â”€â”€ Grab detected URL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 btnGrab.addEventListener('click', () => {
   const url = urlInput.value.trim();
   if (!url) return;
@@ -209,7 +209,7 @@ btnGrab.addEventListener('click', () => {
   btnPlaylist.click();
 });
 
-// ── Core: start download via background ───────
+// â”€â”€ Core: start download via background â”€â”€â”€â”€â”€â”€â”€
 async function startDownload(job) {
   const id = Date.now().toString();
   const item = {
@@ -231,7 +231,7 @@ async function startDownload(job) {
   chrome.runtime.sendMessage({ action: 'startDownload', job: { id, ...job } });
 }
 
-// ── Cancel a running job on the backend ─────
+// â”€â”€ Cancel a running job on the backend â”€â”€â”€â”€â”€
 async function cancelJob(id) {
   try {
     await fetch(`${BACKEND}/cancel/${id}`, { method: 'POST' });
@@ -240,7 +240,7 @@ async function cancelJob(id) {
   }
 }
 
-// ── Queue persistence ─────────────────────────
+// â”€â”€ Queue persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadQueue() {
   const data = await chrome.storage.local.get(['queue', 'downloadPath']);
   queue = data.queue || [];
@@ -254,7 +254,7 @@ async function saveQueue() {
   await chrome.storage.local.set({ queue });
 }
 
-// ── Sync queue status from backend ───────────
+// â”€â”€ Sync queue status from backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function syncQueueWithBackend() {
   if (!backendOnline || queue.length === 0) return;
 
@@ -317,14 +317,14 @@ function startQueueSync() {
   syncTimer = setInterval(syncQueueWithBackend, 2000);
 }
 
-// ── Render queue ──────────────────────────────
+// â”€â”€ Render queue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderQueue() {
   queueCount.textContent = `${queue.length} item${queue.length !== 1 ? 's' : ''}`;
 
   if (queue.length === 0) {
     queueList.innerHTML = `
       <div class="queue-empty">
-        <span class="queue-empty-icon">📂</span>
+        <span class="queue-empty-icon">ðŸ“‚</span>
         No downloads yet
       </div>`;
     return;
@@ -333,8 +333,8 @@ function renderQueue() {
   queueList.innerHTML = queue.map(item => {
     const isAudio = item.format === 'mp3';
     const icon = item.type === 'playlist'
-      ? (isAudio ? '🎵' : '🎬')
-      : (isAudio ? '🎵' : '🎬');
+      ? (isAudio ? 'ðŸŽµ' : 'ðŸŽ¬')
+      : (isAudio ? 'ðŸŽµ' : 'ðŸŽ¬');
     const speedText = item.speed ? formatSpeed(item.speed) : '';
     const totalVideos = item.type === 'playlist' ? (item.total || item.count) : null;
     const downloaded = Number.isFinite(item.downloaded) ? item.downloaded : 0;
@@ -342,17 +342,17 @@ function renderQueue() {
     const remaining = totalVideos ? Math.max(totalVideos - displayDownloaded, 0) : null;
 
     const leftText = item.type === 'playlist'
-      ? `${displayDownloaded}/${totalVideos || '?'} videos${remaining !== null ? ` • ${remaining} remaining` : ''}`
+      ? `${displayDownloaded}/${totalVideos || '?'} videos${remaining !== null ? ` â€¢ ${remaining} remaining` : ''}`
       : (speedText || '');
     const rightText = item.type === 'playlist'
-      ? `${item.progress}%${speedText ? ` • ${speedText}` : ''}`
-      : `${item.progress}%${speedText ? ` • ${speedText}` : ''}`;
+      ? `${item.progress}%${speedText ? ` â€¢ ${speedText}` : ''}`
+      : `${item.progress}%${speedText ? ` â€¢ ${speedText}` : ''}`;
 
     let actionBtn = '';
     if (item.status === 'downloading' || item.status === 'queued') {
-      actionBtn = `<button class="q-btn btn-pause" type="button" data-id="${item.id}" title="Pause">⏸</button>`;
+      actionBtn = `<button class="q-btn btn-pause" type="button" data-id="${item.id}" title="Pause">â¸</button>`;
     } else if (item.status === 'paused') {
-      actionBtn = `<button class="q-btn btn-resume" type="button" data-id="${item.id}" title="Resume">▶</button>`;
+      actionBtn = `<button class="q-btn btn-resume" type="button" data-id="${item.id}" title="Resume">â–¶</button>`;
     }
 
     return `
@@ -363,7 +363,7 @@ function renderQueue() {
         <span class="q-badge ${item.status}">${badgeText(item)}</span>
         <div style="display: flex; align-items: center; gap: 4px;">
           ${actionBtn}
-          <button class="q-remove" type="button" data-id="${item.id}">✕</button>
+          <button class="q-remove" type="button" data-id="${item.id}">âœ•</button>
         </div>
       </div>
       ${item.status === 'downloading' || item.status === 'done' || item.status === 'canceled' || item.status === 'paused' ? `
@@ -381,8 +381,8 @@ function renderQueue() {
 
 function badgeText(item) {
   if (item.status === 'downloading') return 'Downloading';
-  if (item.status === 'done')        return '✓ Done';
-  if (item.status === 'error')       return '✗ Error';
+  if (item.status === 'done')        return 'âœ“ Done';
+  if (item.status === 'error')       return 'âœ— Error';
   if (item.status === 'canceled')    return 'Canceled';
   if (item.status === 'paused')      return 'Paused';
   if (item.type   === 'playlist')    return 'Playlist';
@@ -395,7 +395,7 @@ function formatSpeed(speed) {
   return `${val.toFixed(2)} MB/s`;
 }
 
-// ── Remove item ───────────────────────────────
+// â”€â”€ Remove item â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function handleRemove(id) {
   const item = queue.find(i => i.id === id);
   if (!item) return;
@@ -477,14 +477,14 @@ queueList.addEventListener('click', async (event) => {
   }
 });
 
-// ── Clear all ─────────────────────────────────
+// â”€â”€ Clear all â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 btnClear.addEventListener('click', async () => {
   queue = [];
   await saveQueue();
   renderQueue();
 });
 
-// ── Listen for progress updates from background
+// â”€â”€ Listen for progress updates from background
 chrome.runtime.onMessage.addListener(async (msg) => {
   if (msg.action === 'progress') {
     const item = queue.find(i => i.id === msg.id);
@@ -503,7 +503,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
   }
 });
 
-// ── Show message ──────────────────────────────
+// â”€â”€ Show message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showMsg(text, type = 'info') {
   msgBox.textContent  = text;
   msgBox.className    = type;
@@ -513,5 +513,6 @@ function showMsg(text, type = 'info') {
   }
 }
 
-// ── Start ─────────────────────────────────────
+// â”€â”€ Start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 init();
+

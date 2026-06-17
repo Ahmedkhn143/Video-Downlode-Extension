@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PlaylistGet</title>
+  <title>NexDown</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -16,7 +16,7 @@
       font-size: 13px;
     }
 
-    /* ── Header ── */
+    /* â”€â”€ Header â”€â”€ */
     .header {
       display: flex;
       align-items: center;
@@ -43,7 +43,7 @@
     .status-dot.online  { background: #22c55e; box-shadow: 0 0 6px #22c55e88; }
     .status-dot.offline { background: #ef4444; }
 
-    /* ── Detected Banner ── */
+    /* â”€â”€ Detected Banner â”€â”€ */
     #detected-banner {
       display: none;
       margin: 12px 14px 0;
@@ -74,7 +74,7 @@
     }
     .btn-grab:hover { background: #3b6be0; }
 
-    /* ── Input Section ── */
+    /* â”€â”€ Input Section â”€â”€ */
     .input-section { padding: 14px; }
     .input-label { font-size: 11px; color: #666; margin-bottom: 6px; letter-spacing: 0.3px; }
 
@@ -96,7 +96,7 @@
     .url-input:focus { border-color: #4f7cff; }
     .url-input::placeholder { color: #3a3d54; }
 
-    /* ── Format + Quality Row ── */
+    /* â”€â”€ Format + Quality Row â”€â”€ */
     .options-row {
       display: flex;
       gap: 8px;
@@ -115,7 +115,7 @@
     }
     select:focus { border-color: #4f7cff; }
 
-    /* ── Buttons ── */
+    /* â”€â”€ Buttons â”€â”€ */
     .btn-row { display: flex; gap: 8px; margin-top: 10px; }
 
     .btn-primary {
@@ -150,7 +150,7 @@
     }
     .btn-playlist:hover { background: #a259ff15; border-color: #a259ff; }
 
-    /* ── Error / Info ── */
+    /* â”€â”€ Error / Info â”€â”€ */
     #msg-box {
       display: none;
       margin: 0 14px;
@@ -162,7 +162,7 @@
     #msg-box.success { background: #0f2a1a; border: 1px solid #145a30; color: #4ade80; display: block; }
     #msg-box.info    { background: #141a2a; border: 1px solid #1e2d5a; color: #93c5fd; display: block; }
 
-    /* ── Divider ── */
+    /* â”€â”€ Divider â”€â”€ */
     .divider {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px 4px;
@@ -174,7 +174,7 @@
       content: ''; flex: 1; height: 1px; background: #1e2130;
     }
 
-    /* ── Queue ── */
+    /* â”€â”€ Queue â”€â”€ */
     .queue-header {
       display: flex;
       align-items: center;
@@ -197,7 +197,7 @@
     }
     .queue-empty-icon { font-size: 28px; display: block; margin-bottom: 6px; opacity: 0.4; }
 
-    /* ── Queue Item ── */
+    /* â”€â”€ Queue Item â”€â”€ */
     .q-item {
       background: #151721;
       border: 1px solid #1e2130;
@@ -270,7 +270,7 @@
     }
     .q-btn:hover { color: #4f7cff; }
 
-    /* ── Open Folder Button ── */
+    /* â”€â”€ Open Folder Button â”€â”€ */
     .btn-open-folder {
       margin-left: auto;
       margin-right: 12px;
@@ -293,7 +293,7 @@
       color: #fff;
     }
 
-    /* ── Playlist Range Row ── */
+    /* â”€â”€ Playlist Range Row â”€â”€ */
     .playlist-range-row {
       margin-top: 8px;
       display: none;
@@ -303,7 +303,7 @@
       display: flex;
     }
 
-    /* ── Checkbox Row ── */
+    /* â”€â”€ Checkbox Row â”€â”€ */
     .checkbox-row {
       margin-top: 10px;
       display: flex;
@@ -331,21 +331,21 @@
 
   <!-- Header -->
   <div class="header">
-    <div class="logo">⬇</div>
+    <div class="logo">â¬‡</div>
     <div>
-      <div class="header-title">PlaylistGet</div>
+      <div class="header-title">NexDown</div>
       <div class="header-sub">Playlist Downloader</div>
     </div>
-    <button class="btn-open-folder" id="btn-open-folder" title="Open Downloads Folder">📁 Open Folder</button>
+    <button class="btn-open-folder" id="btn-open-folder" title="Open Downloads Folder">ðŸ“ Open Folder</button>
     <div class="status-dot" id="status-dot" title="Backend status"></div>
   </div>
 
   <!-- Auto-detected banner -->
   <div id="detected-banner">
-    <div class="banner-icon">🎬</div>
+    <div class="banner-icon">ðŸŽ¬</div>
     <div class="banner-text">
       <div class="banner-label" id="detected-type">Playlist detected</div>
-      <div class="banner-url"  id="detected-url">—</div>
+      <div class="banner-url"  id="detected-url">â€”</div>
       <div class="banner-count" id="detected-count"></div>
     </div>
     <button class="btn-grab" id="btn-grab">Download All</button>
@@ -387,11 +387,11 @@
     <!-- Download Path Input -->
     <div style="margin-top: 10px; margin-bottom: 4px;">
       <div class="input-label" style="margin-bottom: 4px;">Download folder path (optional)</div>
-      <input class="url-input" id="path-input" type="text" placeholder="Default: Downloads/PlaylistGet" style="width: 100%;" />
+      <input class="url-input" id="path-input" type="text" placeholder="Default: Downloads/NexDown" style="width: 100%;" />
     </div>
     <div class="btn-row">
-      <button class="btn-primary"  id="btn-download">⬇ Download Video</button>
-      <button class="btn-playlist" id="btn-playlist">▶▶ Full Playlist</button>
+      <button class="btn-primary"  id="btn-download">â¬‡ Download Video</button>
+      <button class="btn-playlist" id="btn-playlist">â–¶â–¶ Full Playlist</button>
     </div>
   </div>
 
@@ -406,7 +406,7 @@
   </div>
   <div id="queue-list">
     <div class="queue-empty">
-      <span class="queue-empty-icon">📂</span>
+      <span class="queue-empty-icon">ðŸ“‚</span>
       No downloads yet
     </div>
   </div>
@@ -414,3 +414,4 @@
   <script src="popup.js"></script>
 </body>
 </html>
+

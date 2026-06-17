@@ -1,6 +1,6 @@
-{
+﻿{
   "manifest_version": 3,
-  "name": "PlaylistGet — Playlist Downloader",
+  "name": "NexDown â€” Playlist Downloader",
   "version": "1.0.0",
   "description": "Download full playlists from YouTube, Facebook, Vimeo & 1000+ sites",
 
@@ -26,7 +26,7 @@
 
   "action": {
     "default_popup": "popup.html",
-    "default_title": "PlaylistGet"
+    "default_title": "NexDown"
   },
 
   "content_scripts": [
@@ -39,3 +39,4 @@
 
   
 }
+

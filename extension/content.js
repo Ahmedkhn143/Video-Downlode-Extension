@@ -1,11 +1,11 @@
-// ─────────────────────────────────────────────
-//  PlaylistGet — content.js
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NexDown â€” content.js
 //  Runs on every page. Detects video/playlist URLs.
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let detectedData = null;
 
-// ── Playlist URL patterns ──────────────────────
+// â”€â”€ Playlist URL patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PLAYLIST_PATTERNS = [
   /[?&]list=[A-Za-z0-9_-]+/,            // YouTube playlist
   /\/playlist\//i,                        // Generic /playlist/ path
@@ -16,7 +16,7 @@ const PLAYLIST_PATTERNS = [
   /[?&]collection=/i,
 ];
 
-// ── Single video patterns ─────────────────────
+// â”€â”€ Single video patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VIDEO_PATTERNS = [
   /youtube\.com\/watch\?v=/,
   /youtu\.be\/[A-Za-z0-9_-]+/,
@@ -28,7 +28,7 @@ const VIDEO_PATTERNS = [
   /tiktok\.com\/@.*\/video\//,
 ];
 
-// ── Detect current page ────────────────────────
+// â”€â”€ Detect current page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function detectCurrentPage() {
   const url = window.location.href;
 
@@ -61,7 +61,7 @@ function detectCurrentPage() {
   }
 }
 
-// ── Respond to popup asking for detected data ──
+// â”€â”€ Respond to popup asking for detected data â”€â”€
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'getDetected') {
     if (!detectedData) detectCurrentPage();
@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // keep channel open for async
 });
 
-// ── Auto-run on page load ─────────────────────
+// â”€â”€ Auto-run on page load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 detectCurrentPage();
 
 // Also watch for URL changes (YouTube uses SPA routing)
@@ -83,3 +83,4 @@ const observer = new MutationObserver(() => {
   }
 });
 observer.observe(document.body, { subtree: true, childList: true });
+

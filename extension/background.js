@@ -1,13 +1,13 @@
-// ─────────────────────────────────────────────
-//  PlaylistGet — background.js (Service Worker)
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NexDown â€” background.js (Service Worker)
 //  Receives download jobs from popup,
 //  sends them to the local Node.js backend,
 //  and streams progress back to popup.
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BACKEND = 'http://localhost:7474';
 
-// ── Listen for messages from popup ────────────
+// â”€â”€ Listen for messages from popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'startDownload') {
     handleDownload(msg.job);
@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
-// ── Main download handler ─────────────────────
+// â”€â”€ Main download handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function handleDownload(job) {
   const { id, url, type, format, quality, embed, playlistItems, downloadPath } = job;
 
@@ -40,12 +40,12 @@ async function handleDownload(job) {
     await pollProgress(id);
 
   } catch (err) {
-    console.error('[PlaylistGet] Download error:', err.message);
+    console.error('[NexDown] Download error:', err.message);
     notifyStatus(id, 'error', 0);
   }
 }
 
-// ── Poll backend for progress ─────────────────
+// â”€â”€ Poll backend for progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function pollProgress(id) {
   const maxAttempts = 3600; // poll for up to 1 hour (1 poll/sec)
   let attempts = 0;
@@ -79,7 +79,7 @@ async function pollProgress(id) {
   }
 }
 
-// ── Send progress to popup ────────────────────
+// â”€â”€ Send progress to popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function notifyProgress(id, status, progress, downloaded = 0, speed = null, total = null) {
   chrome.runtime.sendMessage({
     action: 'progress',
@@ -91,9 +91,10 @@ function notifyStatus(id, status, progress, speed = null, total = null) {
   notifyProgress(id, status, progress, 0, speed, total);
 }
 
-// ── Utility ───────────────────────────────────
+// â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-console.log('[PlaylistGet] Background service worker ready.');
+console.log('[NexDown] Background service worker ready.');
+

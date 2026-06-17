@@ -1,14 +1,14 @@
-// ─────────────────────────────────────────────
-//  PlaylistGet — server.js
+﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  NexDown â€” server.js
 //  Local Node.js backend (runs on localhost:7474)
 //  Handles download requests from the extension
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 //  HOW TO RUN:
 //    npm install
 //    node server.js
 //
-// ─────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const express = require('express');
 const cors    = require('cors');
@@ -20,15 +20,15 @@ const downloader = require('./downloader');
 const app  = express();
 const PORT = 7474;
 
-// ── Middleware ────────────────────────────────
+// â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.use(cors({ origin: '*' })); // Allow Chrome extension
 app.use(express.json());
 
-// ── In-memory job tracker ─────────────────────
+// â”€â”€ In-memory job tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Stores progress for each download job
 const jobs = {}; // { [id]: { status, progress, downloaded, total, type, url, ... } }
 
-// ── Queue Management ──────────────────────────
+// â”€â”€ Queue Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const downloadQueue = []; // Array of job IDs waiting to be downloaded
 let activeCount = 0;
 const MAX_CONCURRENT = 2; // Concurrency limit
@@ -83,14 +83,14 @@ function processNext() {
   });
 }
 
-// ── Routes ────────────────────────────────────
+// â”€â”€ Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // Health check
 app.get('/ping', (req, res) => {
   res.json({ ok: true, version: '1.0.0' });
 });
 
-// ── Open downloads folder ──────────────────────
+// â”€â”€ Open downloads folder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/open-folder', (req, res) => {
   const { downloadPath } = req.body;
   try {
@@ -101,7 +101,7 @@ app.post('/open-folder', (req, res) => {
   }
 });
 
-// ── Get playlist info (title + video count) ───
+// â”€â”€ Get playlist info (title + video count) â”€â”€â”€
 app.post('/playlist-info', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'URL is required' });
@@ -114,7 +114,7 @@ app.post('/playlist-info', async (req, res) => {
   }
 });
 
-// ── Download single video ─────────────────────
+// â”€â”€ Download single video â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/download', (req, res) => {
   const { id, url, format, quality, embed, downloadPath } = req.body;
   if (!id || !url) return res.status(400).json({ error: 'id and url are required' });
@@ -141,7 +141,7 @@ app.post('/download', (req, res) => {
   processNext();
 });
 
-// ── Download full playlist ────────────────────
+// â”€â”€ Download full playlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/download-playlist', (req, res) => {
   const { id, url, format, quality, embed, playlistItems, downloadPath } = req.body;
   if (!id || !url) return res.status(400).json({ error: 'id and url are required' });
@@ -168,7 +168,7 @@ app.post('/download-playlist', (req, res) => {
   processNext();
 });
 
-// ── Cancel a running download ─────────────────
+// â”€â”€ Cancel a running download â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/cancel/:id', (req, res) => {
   const { id } = req.params;
   const job = jobs[id];
@@ -188,7 +188,7 @@ app.post('/cancel/:id', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// ── Pause a running download ──────────────────
+// â”€â”€ Pause a running download â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/pause/:id', (req, res) => {
   const { id } = req.params;
   const job = jobs[id];
@@ -208,7 +208,7 @@ app.post('/pause/:id', (req, res) => {
   res.json({ ok: true, id });
 });
 
-// ── Resume a paused download ──────────────────
+// â”€â”€ Resume a paused download â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.post('/resume/:id', (req, res) => {
   const { id } = req.params;
   const job = jobs[id];
@@ -226,25 +226,26 @@ app.post('/resume/:id', (req, res) => {
   processNext();
 });
 
-// ── Get progress for a job ────────────────────
+// â”€â”€ Get progress for a job â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/progress/:id', (req, res) => {
   const job = jobs[req.params.id];
   if (!job) return res.status(404).json({ error: 'Job not found' });
   res.json(job);
 });
 
-// ── List all active jobs ──────────────────────
+// â”€â”€ List all active jobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.get('/jobs', (req, res) => {
   res.json(jobs);
 });
 
-// ── Start server ──────────────────────────────
+// â”€â”€ Start server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 app.listen(PORT, () => {
   console.log('');
-  console.log('  ┌──────────────────────────────────────┐');
-  console.log('  │   PlaylistGet Backend  v1.0.0         │');
-  console.log(`  │   Running on http://localhost:${PORT}   │`);
-  console.log('  │   Downloads → ' + path.join(os.homedir(), 'Downloads').padEnd(22) + '│');
-  console.log('  └──────────────────────────────────────┘');
+  console.log('  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”');
+  console.log('  â”‚   NexDown Backend  v1.0.0         â”‚');
+  console.log(`  â”‚   Running on http://localhost:${PORT}   â”‚`);
+  console.log('  â”‚   Downloads â†’ ' + path.join(os.homedir(), 'Downloads').padEnd(22) + 'â”‚');
+  console.log('  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜');
   console.log('');
 });
+

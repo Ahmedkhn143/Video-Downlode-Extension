@@ -1,7 +1,7 @@
-{
-  "name": "playlistget-backend",
+﻿{
+  "name": "NexDown-backend",
   "version": "1.0.0",
-  "description": "Local backend server for PlaylistGet Chrome Extension",
+  "description": "Local backend server for NexDown Chrome Extension",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -15,3 +15,4 @@
     "nodemon": "^3.0.1"
   }
 }
+
