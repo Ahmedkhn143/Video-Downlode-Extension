@@ -13,8 +13,7 @@
   ],
 
   "host_permissions": [
-    "http://localhost:7474/*",
-    "<all_urls>"
+    "http://localhost:7474/*"
   ],
 
   "icons": {
