@@ -1,22 +1,22 @@
-﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  NexDown â€” content.js
+// ─────────────────────────────────────────────
+//  NexDown — content.js
 //  Runs on every page. Detects video/playlist URLs.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 let detectedData = null;
 
-// â”€â”€ Playlist URL patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Playlist URL patterns ──────────────────────
 const PLAYLIST_PATTERNS = [
-  /[?&]list=[A-Za-z0-9_-]+/,            // YouTube playlist
+  /[?&]list=[A-Za-z0-9_-]+/,            // Playlist URL query pattern
   /\/playlist\//i,                        // Generic /playlist/ path
   /\/playlists\//i,
-  /\/channel\/.*\/videos/i,              // YouTube channel videos
+  /\/channel\/.*\/videos/i,              // Channel videos pattern
   /\/sets\//i,                           // SoundCloud sets
   /\/album\//i,                          // Bandcamp / others
   /[?&]collection=/i,
 ];
 
-// â”€â”€ Single video patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Single video patterns ──────────────────────
 const VIDEO_PATTERNS = [
   /youtube\.com\/watch\?v=/,
   /youtu\.be\/[A-Za-z0-9_-]+/,
@@ -28,7 +28,7 @@ const VIDEO_PATTERNS = [
   /tiktok\.com\/@.*\/video\//,
 ];
 
-// â”€â”€ Detect current page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Detect current page ────────────────────────
 function detectCurrentPage() {
   const url = window.location.href;
 
@@ -36,11 +36,11 @@ function detectCurrentPage() {
   const isVideo    = !isPlaylist && VIDEO_PATTERNS.some(p => p.test(url));
 
   if (isPlaylist || isVideo) {
-    // Try to count videos in playlist (works for YouTube)
+    // Try to count videos in playlist
     let count = null;
     try {
       const countEl = document.querySelector(
-        'yt-formatted-string.byline-item, ' +            // YouTube playlist header
+        'yt-formatted-string.byline-item, ' +            // Playlist header element
         '[class*="playlistCount"], ' +
         '[aria-label*="videos" i]'
       );
@@ -61,7 +61,7 @@ function detectCurrentPage() {
   }
 }
 
-// â”€â”€ Respond to popup asking for detected data â”€â”€
+// ── Respond to popup asking for detected data ──
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'getDetected') {
     if (!detectedData) detectCurrentPage();
@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // keep channel open for async
 });
 
-// â”€â”€ Auto-run on page load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Auto-run on page load ────────────────────â”€
 detectCurrentPage();
 
 // Also watch for URL changes (YouTube uses SPA routing)

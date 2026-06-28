@@ -1,13 +1,13 @@
-﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  NexDown â€” background.js (Service Worker)
+﻿// ─────────────────────────────────────────────
+//  NexDown — background.js (Service Worker)
 //  Receives download jobs from popup,
 //  sends them to the local Node.js backend,
 //  and streams progress back to popup.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 const BACKEND = 'http://localhost:7474';
 
-// â”€â”€ Listen for messages from popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Listen for messages from popup ────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'startDownload') {
     handleDownload(msg.job);
@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true;
 });
 
-// â”€â”€ Main download handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main download handler ────────────────────â”€
 async function handleDownload(job) {
   const { id, url, type, format, quality, embed, playlistItems, downloadPath } = job;
 
@@ -45,7 +45,7 @@ async function handleDownload(job) {
   }
 }
 
-// â”€â”€ Poll backend for progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Poll backend for progress ────────────────â”€
 async function pollProgress(id) {
   const maxAttempts = 3600; // poll for up to 1 hour (1 poll/sec)
   let attempts = 0;
@@ -79,7 +79,7 @@ async function pollProgress(id) {
   }
 }
 
-// â”€â”€ Send progress to popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Send progress to popup ────────────────────
 function notifyProgress(id, status, progress, downloaded = 0, speed = null, total = null) {
   chrome.runtime.sendMessage({
     action: 'progress',
@@ -91,7 +91,7 @@ function notifyStatus(id, status, progress, speed = null, total = null) {
   notifyProgress(id, status, progress, 0, speed, total);
 }
 
-// â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Utility ──────────────────────────────────â”€
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

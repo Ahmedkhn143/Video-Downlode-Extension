@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexDown Desktop Assistant</title>
+  <style>
+    :root {
+      --bg-color: #0e0f14;
+      --panel-bg: #151721;
+      --border-color: #252840;
+      --primary-color: #4f7cff;
+      --accent-color: #a259ff;
+      --text-main: #e2e4ef;
+      --text-sub: #8c8f9f;
+      --success-color: #22c55e;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Gradient Header Accent */
+    .accent-bar {
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+      width: 100%;
+    }
+
+    /* Container */
+    .container {
+      padding: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(79, 124, 255, 0.3);
+    }
+
+    .title-section h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .title-section p {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 6px 12px;
+      border-radius: 20px;
+      color: var(--success-color);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success-color);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success-color);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    /* Main Panels */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-sub);
+      font-weight: 700;
+    }
+
+    .card-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .card-sub {
+      font-size: 12px;
+      color: var(--text-sub);
+      word-break: break-all;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .btn {
+      background: var(--primary-color);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      text-decoration: none;
+      font-size: 13px;
+      width: fit-content;
+    }
+
+    .btn:hover {
+      background: #3b6be0;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--text-sub);
+    }
+
+    /* Instructions list */
+    .instructions {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .instructions li {
+      position: relative;
+      padding-left: 24px;
+      font-size: 13px;
+      color: #c0c4d8;
+    }
+
+    .instructions li::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 16px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    /* Footer Banner */
+    .footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.25);
+      border-top: 1px solid var(--border-color);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="accent-bar"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo-section">
+        <div class="logo">⬇</div>
+        <div class="title-section">
+          <h1>NexDown Assistant</h1>
+          <p>Local Download Engine & Dashboard</p>
+        </div>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>ENGINE ONLINE</span>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid">
+      <div class="card">
+        <span class="card-title">Local Server Port</span>
+        <span class="card-value">7474</span>
+        <span class="card-sub">Listening for extension requests</span>
+      </div>
+      <div class="card">
+        <span class="card-title">Downloads Location</span>
+        <span class="card-value" id="download-path-title">Downloads</span>
+        <span class="card-sub" id="download-path-sub">~/Downloads/NexDown</span>
+      </div>
+    </div>
+
+    <!-- Controls & Instructions -->
+    <div class="controls-panel">
+      <span class="section-title">Quick Actions</span>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn" id="btn-open-folder">📁 Open Downloads Folder</button>
+        <button class="btn btn-secondary" id="btn-check-connection">⚡ Test Engine Connection</button>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <span class="section-title">How to connect Chrome Extension</span>
+      <ul class="instructions">
+        <li data-step="1">Open Google Chrome and navigate to <b>chrome://extensions/</b></li>
+        <li data-step="2">Enable <b>Developer Mode</b> in the top right corner of the extension tab.</li>
+        <li data-step="3">Click <b>Load unpacked</b> and select the <b>extension</b> directory of NexDown.</li>
+        <li data-step="4">Once loaded, open any video page. NexDown will automatically connect to this desktop app.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">
+    NexDown Desktop Assistant • Supporting 1000+ sites • Local Node Server
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://localhost:7474';
+
+    // Handle Open Downloads Folder click
+    document.getElementById('btn-open-folder').addEventListener('click', async () => {
+      try {
+        await fetch(`${BACKEND_URL}/open-folder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ downloadPath: '' })
+        });
+      } catch (err) {
+        alert('Failed to send open folder command to backend. Ensure server is active.');
+      }
+    });
+
+    // Handle connection test
+    document.getElementById('btn-check-connection').addEventListener('click', async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/ping`);
+        if (res.ok) {
+          alert('Success! Connection to local download engine is active and healthy on port 7474.');
+        } else {
+          throw new Error();
+        }
+      } catch (err) {
+        alert('Could not establish connection to local engine. Restart NexDown Assistant.');
+      }
+    });
+
+    // Populate downloads location based on OS user folder
+    try {
+      // In electron environment, we can guess path or ask API
+      fetch(`${BACKEND_URL}/ping`)
+        .then(() => {
+          document.getElementById('download-path-title').textContent = 'Default Path';
+        })
+        .catch(() => {});
+    } catch (e) {}
+  </script>
+</body>
+</html>

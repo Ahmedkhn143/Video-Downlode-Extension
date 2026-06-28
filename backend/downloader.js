@@ -1,12 +1,12 @@
-﻿// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-//  NexDown â€” downloader.js
+﻿// ─────────────────────────────────────────────
+//  NexDown — downloader.js
 //  Wraps yt-dlp CLI to download videos & playlists
 //
 //  REQUIREMENT: yt-dlp must be installed
 //    Windows : winget install yt-dlp.yt-dlp
 //    Mac/Linux: pip install yt-dlp
 //              OR brew install yt-dlp
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 
 const { spawn, spawnSync }  = require('child_process');
 const fs         = require('fs');
@@ -99,7 +99,7 @@ function withFfmpeg(args) {
   return FFMPEG_DIR ? ['--ffmpeg-location', FFMPEG_DIR, ...args] : args;
 }
 
-// â”€â”€ Download folder (~/Downloads by default) â”€â”€
+// ── Download folder (~/Downloads by default) ──
 const DOWNLOAD_DIR = path.join(os.homedir(), 'Downloads', 'NexDown');
 
 const CONCURRENT_FRAGMENTS = Number.parseInt(
@@ -155,7 +155,7 @@ function splitLines(chunk) {
   return chunk.toString().split(/\r?\n/);
 }
 
-// â”€â”€ Map quality to yt-dlp format string â”€â”€â”€â”€â”€â”€â”€
+// ── Map quality to yt-dlp format string ──────â”€
 function buildFormatArg(format, quality) {
   if (format === 'mp3') {
     return ['--extract-audio', '--audio-format', 'mp3', '--audio-quality', '0'];
@@ -176,7 +176,7 @@ function buildFormatArg(format, quality) {
   return ['--format', fmt, '--merge-output-format', ext];
 }
 
-// â”€â”€ Get playlist info (title + count) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Get playlist info (title + count) ────────â”€
 function getPlaylistInfo(url) {
   return new Promise((resolve, reject) => {
     // yt-dlp --flat-playlist --print "%(playlist_title)s" --print "%(n_entries)s"
@@ -224,7 +224,7 @@ function getPlaylistInfo(url) {
   });
 }
 
-// â”€â”€ Download single video â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Download single video ────────────────────â”€
 function downloadVideo({ id, url, format = 'mp4', quality = 'best', embed = false, downloadPath = null }, onProgress) {
   return new Promise((resolve, reject) => {
     const formatArgs = buildFormatArg(format, quality);
@@ -310,7 +310,7 @@ function downloadVideo({ id, url, format = 'mp4', quality = 'best', embed = fals
   });
 }
 
-// â”€â”€ Download full playlist â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Download full playlist ────────────────────
 function downloadPlaylist({ id, url, format = 'mp4', quality = 'best', embed = false, playlistItems = null, downloadPath = null }, onProgress) {
   return new Promise((resolve, reject) => {
     const formatArgs = buildFormatArg(format, quality);

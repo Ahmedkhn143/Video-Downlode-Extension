@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "NexDown - Playlist Downloader",
+  "name": "NexDown - Video & Playlist Downloader",
   "version": "1.0.0",
-  "description": "Download full playlists from YouTube, Facebook, Vimeo & 1000+ sites",
+  "description": "Download videos and audio playlists from supported video platforms & 1000+ sites",
 
   "permissions": [
     "activeTab",
